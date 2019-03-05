@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_o365_demo_logic_name": {
+            "value": null
+        },
+        "connections_sharepointonline_name": {
+            "value": null
+        },
+        "accounts_sw_custom_01_name": {
+            "value": null
+        },
+        "accounts_o365_image_ocr_name": {
+            "value": null
+        },
+        "connections_cognitiveservicescustomvision_name": {
+            "value": null
+        },
+        "connections_cognitiveservicescomputervision_name": {
+            "value": null
+        },
+        "accounts_swcustom01_Prediction_name": {
+            "value": null
+        }
+    }
+}

@@ -1,0 +1,452 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_o365_demo_logic_name": {
+            "defaultValue": "o365-demo-logic",
+            "type": "String"
+        },
+        "connections_sharepointonline_name": {
+            "defaultValue": "sharepointonline",
+            "type": "String"
+        },
+        "accounts_custvision_01_name": {
+            "defaultValue": "my-custom-01",
+            "type": "String"
+        },
+        "accounts_o365_image_ocr_name": {
+            "defaultValue": "o365-image-ocr",
+            "type": "String"
+        },
+        "connections_cognitiveservicescustomvision_name": {
+            "defaultValue": "cognitiveservicescustomvision",
+            "type": "String"
+        },
+        "connections_cognitiveservicescomputervision_name": {
+            "defaultValue": "cognitiveservicescomputervision",
+            "type": "String"
+        },
+        "accounts_custvision_Prediction_name": {
+            "defaultValue": "mycustom01_Prediction",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "ComputerVision",
+            "name": "[parameters('accounts_o365_image_ocr_name')]",
+            "apiVersion": "2016-02-01-preview",
+            "location": "australiaeast",
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "CustomVision.Training",
+            "name": "[parameters('accounts_sw_custom_01_name')]",
+            "apiVersion": "2016-02-01-preview",
+            "location": "southcentralus",
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "CustomVision.Prediction",
+            "name": "[parameters('accounts_swcustom01_Prediction_name')]",
+            "apiVersion": "2016-02-01-preview",
+            "location": "southcentralus",
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "name": "[parameters('workflows_o365_demo_logic_name')]",
+            "apiVersion": "2017-07-01",
+            "location": "australiaeast",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_a_file_is_created_(properties_only)": {
+                            "recurrence": {
+                                "frequency": "Second",
+                                "interval": 15
+                            },
+                            "splitOn": "@triggerBody()?['value']",
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://YOURTENANT.sharepoint.com/sites/Demo01'))}/tables/@{encodeURIComponent(encodeURIComponent('48d20a6c-9646-4a96-855a-f6a5ad9fb35e'))}/onnewfileitems"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Condition_2": {
+                            "actions": {
+                                "Parse_JSON": {
+                                    "runAfter": {},
+                                    "type": "ParseJson",
+                                    "inputs": {
+                                        "content": "@first(body('Describe_Image_Content')?['description']?['captions'])",
+                                        "schema": {
+                                            "properties": {
+                                                "confidence": {
+                                                    "type": "number"
+                                                },
+                                                "text": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "Set_variable": {
+                                    "runAfter": {
+                                        "Parse_JSON": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "CaptionText",
+                                        "value": "@body('Parse_JSON')?['text']"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Describe_Image_Content": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "greaterOrEquals": [
+                                            "@length(body('Describe_Image_Content')?['description']?['captions'])",
+                                            1
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Describe_Image_Content": {
+                            "runAfter": {
+                                "For_each": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": "@body('Get_file_content')",
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['cognitiveservicescomputervision']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/vision/v2.0/describeImageContent"
+                            }
+                        },
+                        "For_each": {
+                            "foreach": "@body('Predict_tags_from_image')?['Predictions']",
+                            "actions": {
+                                "Condition": {
+                                    "actions": {
+                                        "Set_variable_3": {
+                                            "runAfter": {},
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "Metatags",
+                                                "value": "@{items('For_each')?['Tag']} (@{items('For_each')?['Probability']}) "
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "greaterOrEquals": [
+                                                    "@items('For_each')?['Probability']",
+                                                    "@variables('TagThreshold')"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "type": "If"
+                                }
+                            },
+                            "runAfter": {
+                                "Predict_tags_from_image": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "Get_file_content": {
+                            "runAfter": {
+                                "Initialize_variable_4": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://YOURTENANT.sharepoint.com/sites/Demo01'))}/files/@{encodeURIComponent(triggerBody()?['{Identifier}'])}/content",
+                                "queries": {
+                                    "inferContentType": true
+                                }
+                            }
+                        },
+                        "Initialize_variable": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "TagThreshold",
+                                        "type": "Float",
+                                        "value": 0.7
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_2": {
+                            "runAfter": {
+                                "Initialize_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "Metatags",
+                                        "type": "String"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_3": {
+                            "runAfter": {
+                                "Initialize_variable_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "CaptionText",
+                                        "type": "String"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_4": {
+                            "runAfter": {
+                                "Initialize_variable_3": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "OCRText",
+                                        "type": "String"
+                                    }
+                                ]
+                            }
+                        },
+                        "Optical_Character_Recognition_(OCR)_to_Text": {
+                            "runAfter": {
+                                "Condition_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": "@body('Get_file_content')",
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['cognitiveservicescomputervision']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/vision/v2.0/ocrtext",
+                                "queries": {
+                                    "detectOrientation": true,
+                                    "format": "Image Content",
+                                    "language": "unk"
+                                }
+                            }
+                        },
+                        "Predict_tags_from_image": {
+                            "runAfter": {
+                                "Get_file_content": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": "@body('Get_file_content')",
+                                "headers": {
+                                    "Content-Type": " application/octet-stream"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['cognitiveservicescustomvision']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/customvision/v1.0/Prediction/@{encodeURIComponent('88ce8781-117e-4e48-984c-f1b78562fac5')}/image"
+                            }
+                        },
+                        "Set_variable_2": {
+                            "runAfter": {
+                                "Optical_Character_Recognition_(OCR)_to_Text": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "OCRText",
+                                "value": "@body('Optical_Character_Recognition_(OCR)_to_Text')?['text']"
+                            }
+                        },
+                        "Update_file_properties": {
+                            "runAfter": {
+                                "Set_variable_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "Meta_x002d_tags": "@variables('Metatags')",
+                                    "OCR_x0020_text": "@variables('OCRText')",
+                                    "Title": "@variables('CaptionText')"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "patch",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://waight.sharepoint.com/sites/Demo01'))}/tables/@{encodeURIComponent(encodeURIComponent('48d20a6c-9646-4a96-855a-f6a5ad9fb35e'))}/items/@{encodeURIComponent(triggerBody()?['ID'])}/patchfileitem"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "cognitiveservicescomputervision": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_cognitiveservicescomputervision_name'))]",
+                                "connectionName": "cognitiveservicescomputervision",
+                                "id": "/subscriptions/c26d6256-bbc7-41b4-b220-bf868df6cd6e/providers/Microsoft.Web/locations/australiaeast/managedApis/cognitiveservicescomputervision"
+                            },
+                            "cognitiveservicescustomvision": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_cognitiveservicescustomvision_name'))]",
+                                "connectionName": "cognitiveservicescustomvision",
+                                "id": "/subscriptions/c26d6256-bbc7-41b4-b220-bf868df6cd6e/providers/Microsoft.Web/locations/australiaeast/managedApis/cognitiveservicescustomvision"
+                            },
+                            "sharepointonline": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_sharepointonline_name'))]",
+                                "connectionName": "sharepointonline",
+                                "id": "/subscriptions/c26d6256-bbc7-41b4-b220-bf868df6cd6e/providers/Microsoft.Web/locations/australiaeast/managedApis/sharepointonline"
+                            }
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/connections', parameters('connections_cognitiveservicescomputervision_name'))]",
+                "[resourceId('Microsoft.Web/connections', parameters('connections_cognitiveservicescustomvision_name'))]",
+                "[resourceId('Microsoft.Web/connections', parameters('connections_sharepointonline_name'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "name": "[parameters('connections_cognitiveservicescomputervision_name')]",
+            "apiVersion": "2016-06-01",
+            "location": "australiaeast",
+            "scale": null,
+            "properties": {
+                "displayName": "o365democomputervsionapi",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/c26d6256-bbc7-41b4-b220-bf868df6cd6e/providers/Microsoft.Web/locations/australiaeast/managedApis/', parameters('connections_cognitiveservicescomputervision_name'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "name": "[parameters('connections_cognitiveservicescustomvision_name')]",
+            "apiVersion": "2016-06-01",
+            "location": "australiaeast",
+            "scale": null,
+            "properties": {
+                "displayName": "simontestcustomvisionapi",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/c26d6256-bbc7-41b4-b220-bf868df6cd6e/providers/Microsoft.Web/locations/australiaeast/managedApis/', parameters('connections_cognitiveservicescustomvision_name'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "name": "[parameters('connections_sharepointonline_name')]",
+            "apiVersion": "2016-06-01",
+            "location": "australiaeast",
+            "scale": null,
+            "properties": {
+                "displayName": "simon@waight.net",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/c26d6256-bbc7-41b4-b220-bf868df6cd6e/providers/Microsoft.Web/locations/australiaeast/managedApis/', parameters('connections_sharepointonline_name'))]"
+                }
+            },
+            "dependsOn": []
+        }
+    ]
+}
