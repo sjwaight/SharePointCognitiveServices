@@ -14,11 +14,17 @@ You will need to edit the template.json file and replace the following placehold
 
 - 'https://YOURTENANT.sharepoint.com/sites/YOURSITE': replace YOURTENANT and YOURSITE with the appropriate values for your SharePoint Online enviornment.
 - '00000000-0000-0000-0000-000000000001': replace with the GUID of your actual target Document Library (you can easily view this by opening the List Settings page - the GUID is in the URL).
+
+![SharePoint List GUID](sharepoint-list-guid.png?raw=true "SharePoint List GUID")
+
 - '00000000-0000-0000-0000-000000000002': replace with the Project ID of your custom classifier in Azure Cognitive Service Custom Vision.
 - '00000000-0000-0000-0000-000000000003': replace with your Subscription ID.
 
 Note that it's likely you can deploy the Logic App but there will be problems because the connections for SharePoint Online or Cognitive Services are not included in the definition though they are referenced.
 
+The designer view of the Logic App is in the repository: https://github.com/sjwaight/SharePointCognitiveServices/blob/master/vision-logic-app.png
+
 Read the blog: https://blog.siliconvalve.com/2019/03/08/enriching-sharepoint-image-libraries-with-azure-cognitive-services/
 
 Watch the video: https://youtu.be/30Y9NV0Pmgw
+
