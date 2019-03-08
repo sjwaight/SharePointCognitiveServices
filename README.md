@@ -22,7 +22,7 @@ You will need to edit the template.json file and replace the following placehold
 
 Note that it's likely you can deploy the Logic App but there will be problems because the connections for SharePoint Online or Cognitive Services are not included in the definition though they are referenced.
 
-The designer view of the Logic App is in the repository: https://github.com/sjwaight/SharePointCognitiveServices/blob/master/vision-logic-app.png
+The designer view of the Logic App is in the repository: https://raw.githubusercontent.com/sjwaight/SharePointCognitiveServices/master/vision-logic-app.png
 
 Read the blog: https://blog.siliconvalve.com/2019/03/08/enriching-sharepoint-image-libraries-with-azure-cognitive-services/
 
