@@ -13,7 +13,7 @@ You will need access to the following in order to use this code:
 You will need to edit the template.json file and replace the following placeholders:
 
 - 'https://YOURTENANT.sharepoint.com/sites/YOURSITE': replace YOURTENANT and YOURSITE with the appropriate values for your SharePoint Online enviornment.
-- '00000000-0000-0000-0000-000000000001': replace with the GUID of your actual target Document Library (you can easily view this by opening the List Settings page - the GUID is in the URL.
+- '00000000-0000-0000-0000-000000000001': replace with the GUID of your actual target Document Library (you can easily view this by opening the List Settings page - the GUID is in the URL).
 - '00000000-0000-0000-0000-000000000002': replace with the Project ID of your custom classifier in Azure Cognitive Service Custom Vision.
 - '00000000-0000-0000-0000-000000000003': replace with your Subscription ID.
 
