@@ -18,3 +18,7 @@ You will need to edit the template.json file and replace the following placehold
 - '00000000-0000-0000-0000-000000000003': replace with your Subscription ID.
 
 Note that it's likely you can deploy the Logic App but there will be problems because the connections for SharePoint Online or Cognitive Services are not included in the definition though they are referenced.
+
+Read the blog: https://blog.siliconvalve.com/2019/03/08/enriching-sharepoint-image-libraries-with-azure-cognitive-services/
+
+Watch the video: https://youtu.be/30Y9NV0Pmgw
